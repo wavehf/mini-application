@@ -3,9 +3,10 @@
     "pages/index/index"
   ],
   "window":{
-    "backgroundTextStyle":"light",
-    "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "WeChat",
-    "navigationBarTextStyle":"black"
+    "backgroundTextStyle":"dark",
+    "navigationBarBackgroundColor": "#cbeefd",
+    "navigationBarTitleText": "ZWeather",
+    "navigationBarTextStyle":"black",
+    "enablePullDownRefresh": true
   }
 }
