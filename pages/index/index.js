@@ -16,6 +16,12 @@ const weatherColorMap = {
   'snow': '#aae1fc'
 }
 
+const UNPROMPTED = 0
+const UNAUTHORIZED = 1
+const AUTHORIZED = 2
+
+
+const QQMapWX = require('../../libs/qqmap-wx-jssdk.js');
 Page({
   data: {
     nowTemp: "",
@@ -23,24 +29,44 @@ Page({
     nowWeatherBackground: "",
     hourlyWeather: [],
     todayTemp: "",
-    todayDate: ""
+    todayDate: "",
+    city: "广州市",
+    locationAuthType: UNPROMPTED
   },
   onPullDownRefresh() {
+    console.log('onPullDownRefresh')
     this.getNow(() => {
       wx.stopPullDownRefresh()
     })
   },
   onLoad() {
-    this.getNow()
+    console.log('onLoad')
+    this.qqmapsdk = new QQMapWX({
+      key: 'LNABZ-MUFCQ-TDW5Y-G45LF-72MXE-ISF73'
+    })
+    wx.getSetting({
+      success: res=>{
+        let auth = res.authSetting['scope.userLocation']
+        this.setData({
+          locationAuthType: auth ? AUTHORIZED:
+          (auth===false)?UNAUTHORIZED:UNPROMPTED
+        })
+        if (auth) {
+          this.getLocation()
+        } else {
+          this.getNow()
+        }
+      }
+    })
   },
+
   getNow(callback) {
     wx.request({
       url: 'https://test-miniprogram.com/api/weather/now', 
       data: {
-        city:'广州市'
+        city: this.data.city
       },
       success:res => {
-        console.log(res)
         let result = res.data.result
         this.setNow(result)
         this.setHourlyWeather(result)
@@ -89,6 +115,55 @@ Page({
     this.setData({
       todayTemp: `${result.today.minTemp}° - ${result.today.maxTemp}°`,
       todayDate: `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} 今天`
+    })
+  },
+  onTapDayWeather() {
+    wx.showToast({
+      title: 'Hi',
+    })
+    wx.navigateTo({
+      url: '/pages/list/list?city=' + this.data.city,
+    })
+  },
+  onTapLocation() {
+    if (this.data.locationAuthType === UNAUTHORIZED) {
+      wx.openSetting({
+        success: res => {
+          if (res.authSetting['scope.userLocation']) {
+            this.getLocation()
+          }
+        }
+      })
+    } else {
+      this.getLocation()
+    }
+  },
+  getLocation() {
+    wx.getLocation({
+      success: res => {
+        this.setData({
+          locationAuthType: AUTHORIZED
+        })
+        this.qqmapsdk.reverseGeocoder({
+          location: {
+            latitude: res.latitude,
+            longitude: res.longitude,
+            key: 'LNABZ-MUFCQ-TDW5Y-G45LF-72MXE-ISF73'
+          },
+          success: ret => {
+            let city = ret.result.address_component.city
+            this.setData({
+              city: city,
+            }),
+            this.getNow()
+          }
+        })
+      },
+      fail: ()=> {
+        this.setData({
+          locationAuthType: UNAUTHORIZED
+        })
+      }
     })
   }
 })
